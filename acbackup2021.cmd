@@ -16,58 +16,75 @@ set "filenameext=%filenameext:"=%"
 
 set PATH=%PATH%;C:\Program Files\7-Zip;C:\Program Files Portable\zipcomp
 
-for /f "delims=" %%a in ('dir /b /o- "%sourcedir%"') do (
+for /f %%a in ('"prompt $H&for %%b in (1) do rem"') do set "BS=%%a"
+
+set count=0
+for /f "delims=" %%a in ('dir /a:d /b "%sourcedir%\*"') do (
+	set /a count+=1
+)
+set "countdisplay=000!count!"
+set "countdisplay=!countdisplay:~-4!
+echo found [%countdisplay%] assetto corsa cars to backup...
+
+pause
+
+set count=0
+for /f "delims=" %%a in ('dir /b "%sourcedir%"') do (
+	set /a count+=1
+    set "countdisplay=000!count!"
+    set "countdisplay=!countdisplay:~-4!
 	set "dirname=%%~na"
 	set "filename=%%~a"
-	echo [PROCESSING CAR] !filename!
+	echo [!countdisplay!] processing folder !filename!...
 	for /f "delims=" %%b in ('dir /b "%zipdir%" ^| findstr "^^!filename!.!filenameext!"') do (
 		set "zipfile=%%~b"
 	)
 	if not [!zipfile!]==[] (
-		REM echo     ^? found existing !filenameext! file !zipfile!, checking verification...
-		echo     ^? verifying existing !filenameext! file !zipfile!...
-		for /f "delims=" %%d in ('7z t "!zipdir!\!filename!.!filenameext!" 2^>^&1 ^| findstr "Everything is Ok"') do (
-			set "zipfileverification=%%~d"
-		)
-		if not [!zipfileverification!]==[] (
-			echo     ^+ !filenameext! file has passed verification...
-		) else (
-			echo     ^^! !filenameext! file has failed verification, recompressing...
-			del /f "!zipdir!\!filename!.!filenameext!" >nul 2>&1
-			7z a "%zipdir%\!filename!.!filenameext!" "%sourcedir%\!filename!\*" >nul 2>&1
-		)
-		for /f "delims=" %%c in ('zipcomp "!zipdir!\!zipfile!" "%sourcedir%\!filename!" 2^>^&1 ^| findstr /R "NONE SIZE CRC"') do (
-			set "zipfilehasdifference=%%~c"
-		)
-		if not [!zipfilehasdifference!]==[] (
-			echo     ^^! !filenameext! file has differences, updating...
-			del /f "!zipdir!\!zipfile!" >nul 2>&1
-			7z a "%zipdir%\!zipfile!" "%sourcedir%\!filename!\*" >nul 2>&1
-		) else (
-			echo     ^- !filenameext! file has no differences, skipping...
-		)
+		call :VERIFY
+		call :COMPARE
 	) else (
-		echo     ^^! !filenameext! file is missing, compressing...
-		7z a "%zipdir%\!filename!.!filenameext!" "%sourcedir%\!filename!\*" >nul 2>&1
-		echo     ^? verifying newly compressed !filenameext! file !filename!.!filenameext!...
-		REM for /f "delims=" %%d in ('zipcomp "!zipdir!\!filename!.!filenameext!" "%sourcedir%\!filename!" 2^>^&1 ^| findstr /R "NONE SIZE CRC"') do (
-			REM set "zipfileverification=%%~d"
-		REM )
-		for /f "delims=" %%d in ('7z t "!zipdir!\!filename!.!filenameext!" 2^>^&1 ^| findstr "Everything is Ok"') do (
-			set "zipfileverification=%%~d"
-		)
-		if not [!zipfileverification!]==[] (
-			echo     ^+ !filenameext! file has passed verification, finishing...
-		) else (
-			echo     ^^! !filenameext! file has failed verification, recompressing...
-			del /f "!zipdir!\!filename!.!filenameext!" >nul 2>&1
-			7z a "%zipdir%\!filename!.!filenameext!" "%sourcedir%\!filename!\*" >nul 2>&1
-		)
+		set "zipfile=!filename!.!filenameext!"
+		call :7ZFILE
 	)
 	echo.
 	set "zipfile="
-	set "zipfilehasdifference="
-	set "zipfileverification="
-	REM pause
-	REM exit /b
 )
+
+:VERIFY
+	echo | set/p=.%BS%       ^? verifying !filenameext! file !zipfile!...
+	for /f "delims=" %%d in ('7z t "!zipdir!\!zipfile!" 2^>^&1 ^| findstr "Everything is Ok"') do (
+		set "zipfileverification=%%~d"
+	)
+	if not [!zipfileverification!]==[] (
+		echo  PASSED
+	) else (
+		call :MISMATCH
+	)
+	set "zipfileverification="
+	goto :EOF
+	
+:COMPARE
+	echo | set/p=.%BS%       ^? comparing contents of !filename! with !zipfile!...
+	for /f "delims=" %%c in ('zipcomp "!zipdir!\!zipfile!" "%sourcedir%\!filename!" 2^>^&1 ^| findstr /R "NONE SIZE CRC"') do (
+		set "zipfilehasdifference=%%~c"
+	)
+	if not [!zipfilehasdifference!]==[] (
+		call :MISMATCH
+	) else (
+		echo  MATCHED
+	)
+	set "zipfilehasdifference="
+	goto :EOF
+	
+:MISMATCH
+	del /f "!zipdir!\!filename!.!filenameext!" >nul 2>&1
+	echo  MISMATCH
+	call :7ZFILE
+	goto :EOF
+
+:7ZFILE
+	echo | set/p=.%BS%       ^? compressing !filenameext! file !zipfile!...
+	7z a "%zipdir%\!zipfile!" "%sourcedir%\!filename!\*" >nul 2>&1
+	echo  COMPLETE
+	call :VERIFY
+	goto :EOF

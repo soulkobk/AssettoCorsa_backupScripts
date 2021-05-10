@@ -29,7 +29,7 @@ echo found [%countdisplay%] assetto corsa tracks to backup...
 pause
 
 set count=0
-for /f "delims=" %%a in ('dir /b /o-d "%sourcedir%" ^| findstr /r "^rmi"') do (
+for /f "delims=" %%a in ('dir /b /o-d "%sourcedir%"') do (
 	set /a count+=1
     set "countdisplay=000!count!"
     set "countdisplay=!countdisplay:~-4!

@@ -8,6 +8,8 @@ set zipdir="G:\AssettoCorsaBackupsTracks"
 
 :: don't change anything below!
 
+:: script updated 20210614 - added in :CRCFAIL and :UPDATE routines
+
 set filenameext="zip"
 
 set "sourcedir=%sourcedir:"=%"
@@ -40,7 +42,9 @@ for /f "delims=" %%a in ('dir /b /o-d "%sourcedir%"') do (
 		set "zipfile=%%~b"
 	)
 	if not [!zipfile!]==[] (
+		set "zipfile=!filename!.!filenameext!"
 		call :VERIFY
+		call :UPDATE
 		call :COMPARE
 	) else (
 		set "zipfile=!filename!.!filenameext!"
@@ -49,6 +53,19 @@ for /f "delims=" %%a in ('dir /b /o-d "%sourcedir%"') do (
 	echo.
 	set "zipfile="
 )
+
+:UPDATE
+	echo | set/p=.%BS%       ^? updating !filenameext! file !zipfile!...
+	for /f "delims=" %%d in ('7z u "!zipdir!\!zipfile!" "%sourcedir%\!filename!\*" 2^>^&1 ^| findstr "Files read from disk:" ^| findstr /R [1-999999]') do (
+		set "zipupdateverification=%%~d"
+	)
+	if not [!zipupdateverification!]==[] (
+		echo  UPDATED
+	) else (
+		echo  SKIPPED
+	)
+	set "zipupdateverification="
+	goto :EOF
 
 :VERIFY
 	if [!zipfile!]==[] (
@@ -63,9 +80,15 @@ for /f "delims=" %%a in ('dir /b /o-d "%sourcedir%"') do (
 	if not [!zipfileverification!]==[] (
 		echo  PASSED
 	) else (
-		call :MISMATCH
+		call :CRCFAIL
 	)
 	set "zipfileverification="
+	goto :EOF
+	
+:CRCFAIL
+	del /f "!zipdir!\!filename!.!filenameext!" >nul 2>&1
+	echo  CRC FAIL
+	call :7ZFILE
 	goto :EOF
 	
 :COMPARE

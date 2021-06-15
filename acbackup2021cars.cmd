@@ -119,40 +119,40 @@ for /f "delims=" %%a in ('dir /b /o-d "%sourcedir%"') do (
 	goto :EOF
 	
 :MAINSTART
-set MAINSTARTTIME=%TIME%
-for /f "usebackq tokens=1-4 delims=:., " %%f in (`echo %MAINSTARTTIME: =0%`) do set /a MAINSTART100S=1%%f*360000+1%%g*6000+1%%h*100+1%%i-36610100
-goto :EOF
+	set MAINSTARTTIME=%TIME%
+	for /f "usebackq tokens=1-4 delims=:., " %%f in (`echo %MAINSTARTTIME: =0%`) do set /a MAINSTART100S=1%%f*360000+1%%g*6000+1%%h*100+1%%i-36610100
+	goto :EOF
 
 :LOOPSTART
-set LOOPSTARTTIME=%TIME%
-for /f "usebackq tokens=1-4 delims=:., " %%f in (`echo %LOOPSTARTTIME: =0%`) do set /a START100S=1%%f*360000+1%%g*6000+1%%h*100+1%%i-36610100
-goto :EOF
+	set LOOPSTARTTIME=%TIME%
+	for /f "usebackq tokens=1-4 delims=:., " %%f in (`echo %LOOPSTARTTIME: =0%`) do set /a START100S=1%%f*360000+1%%g*6000+1%%h*100+1%%i-36610100
+	goto :EOF
 
 :LOOPSTOP
-set LOOPSTOPTIME=%TIME%
-for /f "usebackq tokens=1-4 delims=:., " %%f in (`echo %LOOPSTOPTIME: =0%`) do set /a STOP100S=1%%f*360000+1%%g*6000+1%%h*100+1%%i-36610100
-if %STOP100S% LSS %START100S% set /a STOP100S+=8640000
-set /a LOOPTIME=%STOP100S%-%START100S%
-set LOOPTIMEPADDED=0%LOOPTIME%
-set /a TOTALTIME=%STOP100S%-%MAINSTART100S%
-set TOTALTIMEPADDED=0%TOTALTIME%
-goto :EOF
+	set LOOPSTOPTIME=%TIME%
+	for /f "usebackq tokens=1-4 delims=:., " %%f in (`echo %LOOPSTOPTIME: =0%`) do set /a STOP100S=1%%f*360000+1%%g*6000+1%%h*100+1%%i-36610100
+	if %STOP100S% LSS %START100S% set /a STOP100S+=8640000
+	set /a LOOPTIME=%STOP100S%-%START100S%
+	set LOOPTIMEPADDED=0%LOOPTIME%
+	set /a TOTALTIME=%STOP100S%-%MAINSTART100S%
+	set TOTALTIMEPADDED=0%TOTALTIME%
+	goto :EOF
 
 :LOOPRESULT
-set LOOPTIMERESULT=%LOOPTIME:~0,-2%.%LOOPTIMEPADDED:~-4%
-set TOTALTIMERESULTSEC=%TOTALTIME:~0,-2%.%TOTALTIMEPADDED:~-4%
-for /f %%a in ('powershell !TOTALTIMERESULTSEC! -gt 60') do set TOTALTIMESECGT60=%%a
-if %TOTALTIMESECGT60%==True (
-	for /f %%b in ('powershell [math]::Round^(!TOTALTIMERESULTSEC!/60^,4^)') do set TOTALTIMERESULTMIN=%%b
-	for /f %%c in ('powershell !TOTALTIMERESULTMIN! -gt 60') do set TOTALTIMEMINGT60=%%c
-	if !TOTALTIMEMINGT60!==True (
-		for /f %%d in ('powershell [math]::Round^(!TOTALTIMERESULTMIN!/60^,4^)') do set TOTALTIMERESULTHRS=%%d
-		echo             ^? process time !LOOPTIMERESULT! SECONDS ^(!TOTALTIMERESULTHRS! HOURS TOTAL^)
-	) else (
-		echo             ^? process time !LOOPTIMERESULT! SECONDS ^(!TOTALTIMERESULTMIN! MINUTES TOTAL^)
-	)
+	set LOOPTIMERESULT=%LOOPTIME:~0,-2%.%LOOPTIMEPADDED:~-4%
+	set TOTALTIMERESULTSEC=%TOTALTIME:~0,-2%.%TOTALTIMEPADDED:~-4%
+	for /f %%a in ('powershell !TOTALTIMERESULTSEC! -gt 60') do set TOTALTIMESECGT60=%%a
+	if %TOTALTIMESECGT60%==True (
+		for /f %%b in ('powershell [math]::Round^(!TOTALTIMERESULTSEC!/60^,4^)') do set TOTALTIMERESULTMIN=%%b
+		for /f %%c in ('powershell !TOTALTIMERESULTMIN! -gt 60') do set TOTALTIMEMINGT60=%%c
+		if !TOTALTIMEMINGT60!==True (
+			for /f %%d in ('powershell [math]::Round^(!TOTALTIMERESULTMIN!/60^,4^)') do set TOTALTIMERESULTHRS=%%d
+			echo             ^? process time !LOOPTIMERESULT! SECONDS ^(!TOTALTIMERESULTHRS! HOURS TOTAL^)
+		) else (
+			echo             ^? process time !LOOPTIMERESULT! SECONDS ^(!TOTALTIMERESULTMIN! MINUTES TOTAL^)
+		)
 
-) else (
-	echo             ^? process time !LOOPTIMERESULT! SECONDS ^(!TOTALTIMERESULTSEC! SECONDS TOTAL^)
-)
-goto :EOF
+	) else (
+		echo             ^? process time !LOOPTIMERESULT! SECONDS ^(!TOTALTIMERESULTSEC! SECONDS TOTAL^)
+	)
+	goto :EOF
